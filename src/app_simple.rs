@@ -682,12 +682,9 @@ impl eframe::App for ImageToolApp {
                 ui.label(&self.status_message);
 
                 if self.state != AppState::Idle {
-                    ui.with_layout(
-                        egui::Layout::right_to_left(egui::Align::Center),
-                        |ui| {
-                            ui.spinner();
-                        },
-                    );
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.spinner();
+                    });
                 }
             });
         });
@@ -704,35 +701,38 @@ impl eframe::App for ImageToolApp {
 
                     if let Some(texture) = &self.preview_texture {
                         let available_size = ui.available_size();
-                        let (rect, _response) = ui.allocate_exact_size(available_size, egui::Sense::hover());
+                        let (rect, _response) =
+                            ui.allocate_exact_size(available_size, egui::Sense::hover());
 
                         ui.allocate_ui_at_rect(rect, |ui| {
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                let texture_size = texture.size_vec2();
-                                
-                                // Prevent division by zero
-                                if texture_size.x > 0.0 && texture_size.y > 0.0 {
-                                    // Calculate scale factor to fit within available space keeping aspect ratio
-                                    let width_scale = rect.width() / texture_size.x;
-                                    let height_scale = rect.height() / texture_size.y;
-                                    // Shrink by 1/3 (show at ~66% of max fit size)
-                                    let scale = width_scale.min(height_scale) * 0.66;
-                                    
-                                    let new_size = texture_size * scale;
-                                    
-                                    // Add some right padding
-                                    ui.add_space(30.0);
-                                    
-                                    ui.add(
-                                        egui::Image::new(texture)
-                                            .fit_to_exact_size(new_size)
-                                    );
-                                }
-                            });
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    let texture_size = texture.size_vec2();
+
+                                    // Prevent division by zero
+                                    if texture_size.x > 0.0 && texture_size.y > 0.0 {
+                                        // Calculate scale factor to fit within available space keeping aspect ratio
+                                        let width_scale = rect.width() / texture_size.x;
+                                        let height_scale = rect.height() / texture_size.y;
+                                        // Shrink by 1/3 (show at ~66% of max fit size)
+                                        let scale = width_scale.min(height_scale) * 0.66;
+
+                                        let new_size = texture_size * scale;
+
+                                        // Add some right padding
+                                        ui.add_space(30.0);
+
+                                        ui.add(
+                                            egui::Image::new(texture).fit_to_exact_size(new_size),
+                                        );
+                                    }
+                                },
+                            );
                         });
                     } else {
                         ui.centered_and_justified(|ui| {
-                             ui.label("请选择图片预览");
+                            ui.label("请选择图片预览");
                         });
                     }
                 });
@@ -740,213 +740,213 @@ impl eframe::App for ImageToolApp {
 
         // 4. 中间列表面板
         egui::CentralPanel::default().show(ctx, |ui| {
-                ui.heading("图片列表");
+            ui.heading("图片列表");
 
-                if self.state == AppState::Loading {
-                    ui.centered_and_justified(|ui| {
-                        ui.spinner();
-                        ui.label(&self.status_message);
-                    });
-                } else if self.batch_info.is_none() {
-                    ui.centered_and_justified(|ui| {
-                        ui.label("请先选择文件夹加载图片");
-                    });
-                } else if let Some(batch_info) = &self.batch_info {
-                    let batch_info_clone = batch_info.clone();
-                    let selected_image = self.selected_image;
-                    let ctx_clone = ctx.clone();
+            if self.state == AppState::Loading {
+                ui.centered_and_justified(|ui| {
+                    ui.spinner();
+                    ui.label(&self.status_message);
+                });
+            } else if self.batch_info.is_none() {
+                ui.centered_and_justified(|ui| {
+                    ui.label("请先选择文件夹加载图片");
+                });
+            } else if let Some(batch_info) = &self.batch_info {
+                let batch_info_clone = batch_info.clone();
+                let selected_image = self.selected_image;
+                let ctx_clone = ctx.clone();
 
-                    let table = TableBuilder::new(ui)
-                        .striped(true)
-                        .resizable(true)
-                        .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                        .column(Column::auto().at_least(200.0)) // 文件名
-                        .column(Column::auto().at_least(80.0)) // 像素尺寸
-                        .column(Column::auto().at_least(80.0)) // 物理尺寸
-                        .column(Column::auto().at_least(60.0)) // DPI
-                        .column(Column::auto().at_least(80.0)) // 文件大小
-                        .column(Column::auto().at_least(60.0)) // 文件格式
-                        .column(Column::auto().at_least(60.0)) // CMYK/RGB
-                        .header(20.0, |mut header| {
-                            header.col(|ui| {
-                                ui.heading("文件名");
+                let table = TableBuilder::new(ui)
+                    .striped(true)
+                    .resizable(true)
+                    .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                    .column(Column::auto().at_least(200.0)) // 文件名
+                    .column(Column::auto().at_least(80.0)) // 像素尺寸
+                    .column(Column::auto().at_least(80.0)) // 物理尺寸
+                    .column(Column::auto().at_least(60.0)) // DPI
+                    .column(Column::auto().at_least(80.0)) // 文件大小
+                    .column(Column::auto().at_least(60.0)) // 文件格式
+                    .column(Column::auto().at_least(60.0)) // CMYK/RGB
+                    .header(20.0, |mut header| {
+                        header.col(|ui| {
+                            ui.heading("文件名");
+                        });
+                        header.col(|ui| {
+                            ui.heading("像素尺寸");
+                        });
+                        header.col(|ui| {
+                            ui.heading("物理尺寸(cm)");
+                        });
+                        header.col(|ui| {
+                            ui.heading("DPI");
+                        });
+                        header.col(|ui| {
+                            ui.heading("文件大小");
+                        });
+                        header.col(|ui| {
+                            ui.heading("文件格式");
+                        });
+                        header.col(|ui| {
+                            ui.heading("CMYK/RGB");
+                        });
+                    });
+
+                table.body(|mut body| {
+                    for (idx, image_info) in batch_info_clone.images.iter().enumerate() {
+                        let row_selected = selected_image == Some(idx);
+
+                        body.row(30.0, |mut row| {
+                            row.set_selected(row_selected);
+
+                            // 文件名列
+                            row.col(|ui| {
+                                if self.editing_row == Some(idx) {
+                                    // 编辑模式
+                                    let response = ui.add(
+                                        egui::TextEdit::singleline(&mut self.edit_buffer)
+                                            .desired_width(200.0)
+                                            .frame(true),
+                                    );
+
+                                    if response.lost_focus()
+                                        && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                                    {
+                                        if self.save_editing(&ctx_clone) {
+                                            self.status_message =
+                                                format!("已重命名: {}", self.edit_buffer);
+                                        }
+                                    } else if response.lost_focus() {
+                                        if self.save_editing(&ctx_clone) {
+                                            self.status_message =
+                                                format!("已重命名: {}", self.edit_buffer);
+                                        }
+                                    }
+
+                                    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                                        self.cancel_editing();
+                                    }
+
+                                    response.request_focus();
+                                } else {
+                                    let label_response =
+                                        ui.selectable_label(row_selected, &image_info.file_name);
+
+                                    if label_response.clicked() {
+                                        self.selected_image = Some(idx);
+                                        self.update_preview(&ctx_clone);
+                                    }
+
+                                    if label_response.double_clicked() {
+                                        self.start_editing(idx);
+                                    }
+
+                                    label_response.context_menu(|ui| {
+                                        if ui.button("重命名").clicked() {
+                                            self.start_editing(idx);
+                                            ui.close_menu();
+                                        }
+                                    });
+                                }
                             });
-                            header.col(|ui| {
-                                ui.heading("像素尺寸");
+
+                            // 其他列
+                            row.col(|ui| {
+                                if image_info.error.is_none() {
+                                    ui.label(image_info.pixel_size_str());
+                                } else {
+                                    ui.label("无法读取");
+                                }
                             });
-                            header.col(|ui| {
-                                ui.heading("物理尺寸(cm)");
+
+                            row.col(|ui| {
+                                if image_info.error.is_none() {
+                                    ui.label(image_info.physical_size_str());
+                                } else {
+                                    ui.label("");
+                                }
                             });
-                            header.col(|ui| {
-                                ui.heading("DPI");
+
+                            row.col(|ui| {
+                                if image_info.error.is_none() {
+                                    ui.label(image_info.dpi_str());
+                                } else {
+                                    ui.label("");
+                                }
                             });
-                            header.col(|ui| {
-                                ui.heading("文件大小");
+
+                            row.col(|ui| {
+                                if image_info.error.is_none() {
+                                    ui.label(image_info.file_size_str());
+                                } else {
+                                    ui.label("");
+                                }
                             });
-                            header.col(|ui| {
-                                ui.heading("文件格式");
+
+                            row.col(|ui| {
+                                if image_info.error.is_none() {
+                                    let extension = image_info.file_extension();
+                                    let format = if !extension.is_empty() {
+                                        extension
+                                    } else {
+                                        image_info.format.clone()
+                                    };
+                                    ui.label(format);
+                                } else {
+                                    ui.label("");
+                                }
                             });
-                            header.col(|ui| {
-                                ui.heading("CMYK/RGB");
+
+                            row.col(|ui| {
+                                if image_info.error.is_none() {
+                                    ui.label(image_info.color_mode_simple());
+                                } else {
+                                    ui.label("");
+                                }
                             });
                         });
-
-                    table.body(|mut body| {
-                        for (idx, image_info) in batch_info_clone.images.iter().enumerate() {
-                            let row_selected = selected_image == Some(idx);
-
-                            body.row(30.0, |mut row| {
-                                row.set_selected(row_selected);
-
-                                // 文件名列
-                                row.col(|ui| {
-                                    if self.editing_row == Some(idx) {
-                                        // 编辑模式
-                                        let response = ui.add(
-                                            egui::TextEdit::singleline(&mut self.edit_buffer)
-                                                .desired_width(200.0)
-                                                .frame(true),
-                                        );
-
-                                        if response.lost_focus()
-                                            && ui.input(|i| i.key_pressed(egui::Key::Enter))
-                                        {
-                                            if self.save_editing(&ctx_clone) {
-                                                self.status_message =
-                                                    format!("已重命名: {}", self.edit_buffer);
-                                            }
-                                        } else if response.lost_focus() {
-                                            if self.save_editing(&ctx_clone) {
-                                                self.status_message =
-                                                    format!("已重命名: {}", self.edit_buffer);
-                                            }
-                                        }
-
-                                        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-                                            self.cancel_editing();
-                                        }
-
-                                        response.request_focus();
-                                    } else {
-                                        let label_response = ui
-                                            .selectable_label(row_selected, &image_info.file_name);
-
-                                        if label_response.clicked() {
-                                            self.selected_image = Some(idx);
-                                            self.update_preview(&ctx_clone);
-                                        }
-
-                                        if label_response.double_clicked() {
-                                            self.start_editing(idx);
-                                        }
-
-                                        label_response.context_menu(|ui| {
-                                            if ui.button("重命名").clicked() {
-                                                self.start_editing(idx);
-                                                ui.close_menu();
-                                            }
-                                        });
-                                    }
-                                });
-
-                                // 其他列
-                                row.col(|ui| {
-                                    if image_info.error.is_none() {
-                                        ui.label(image_info.pixel_size_str());
-                                    } else {
-                                        ui.label("无法读取");
-                                    }
-                                });
-
-                                row.col(|ui| {
-                                    if image_info.error.is_none() {
-                                        ui.label(image_info.physical_size_str());
-                                    } else {
-                                        ui.label("");
-                                    }
-                                });
-
-                                row.col(|ui| {
-                                    if image_info.error.is_none() {
-                                        ui.label(image_info.dpi_str());
-                                    } else {
-                                        ui.label("");
-                                    }
-                                });
-
-                                row.col(|ui| {
-                                    if image_info.error.is_none() {
-                                        ui.label(image_info.file_size_str());
-                                    } else {
-                                        ui.label("");
-                                    }
-                                });
-
-                                row.col(|ui| {
-                                    if image_info.error.is_none() {
-                                        let extension = image_info.file_extension();
-                                        let format = if !extension.is_empty() {
-                                            extension
-                                        } else {
-                                            image_info.format.clone()
-                                        };
-                                        ui.label(format);
-                                    } else {
-                                        ui.label("");
-                                    }
-                                });
-
-                                row.col(|ui| {
-                                    if image_info.error.is_none() {
-                                        ui.label(image_info.color_mode_simple());
-                                    } else {
-                                        ui.label("");
-                                    }
-                                });
-                            });
-                        }
-                    });
-                }
+                    }
+                });
+            }
         });
 
-            // 显示清除确认对话框
-            if self.show_clear_dialog {
-                egui::Window::new("确认清除")
-                    .collapsible(false)
-                    .resizable(false)
-                    .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-                    .show(ctx, |ui| {
-                        ui.heading("⚠️ 警告");
-                        ui.label("此操作将清除所有图片的文件名，替换为'未命名'。");
-                        ui.label("此操作不可逆，建议先备份文件！");
-                        ui.separator();
+        // 显示清除确认对话框
+        if self.show_clear_dialog {
+            egui::Window::new("确认清除")
+                .collapsible(false)
+                .resizable(false)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .show(ctx, |ui| {
+                    ui.heading("⚠️ 警告");
+                    ui.label("此操作将清除所有图片的文件名，替换为'未命名'。");
+                    ui.label("此操作不可逆，建议先备份文件！");
+                    ui.separator();
 
-                        ui.horizontal(|ui| {
-                            if ui.button("取消").clicked() {
-                                self.show_clear_dialog = false;
-                            }
+                    ui.horizontal(|ui| {
+                        if ui.button("取消").clicked() {
+                            self.show_clear_dialog = false;
+                        }
 
-                            if ui.button("确认清除").clicked() {
-                                self.clear_all_filenames(ctx);
-                            }
-                        });
-                    });
-            }
-
-            // 显示错误消息
-            if let Some(error_msg) = &self.error_message {
-                let error_msg_clone = error_msg.clone();
-                egui::Window::new("错误")
-                    .collapsible(false)
-                    .resizable(false)
-                    .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-                    .show(ctx, |ui| {
-                        ui.label(&error_msg_clone);
-                        if ui.button("确定").clicked() {
-                            self.error_message = None;
+                        if ui.button("确认清除").clicked() {
+                            self.clear_all_filenames(ctx);
                         }
                     });
-            }
+                });
+        }
+
+        // 显示错误消息
+        if let Some(error_msg) = &self.error_message {
+            let error_msg_clone = error_msg.clone();
+            egui::Window::new("错误")
+                .collapsible(false)
+                .resizable(false)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .show(ctx, |ui| {
+                    ui.label(&error_msg_clone);
+                    if ui.button("确定").clicked() {
+                        self.error_message = None;
+                    }
+                });
+        }
 
         // 如果正在处理，请求重绘
         if self.state != AppState::Idle {

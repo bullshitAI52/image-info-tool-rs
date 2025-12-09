@@ -2,9 +2,9 @@ use crate::image_info::ImageInfo;
 use anyhow::{Context, Result};
 use chrono::Local;
 use image::{DynamicImage, ImageFormat};
+use jpeg_encoder::{ColorType as JpegColorType, Density, Encoder as JpegRawEncoder};
 use std::fs;
 use std::path::{Path, PathBuf};
-use jpeg_encoder::{Encoder as JpegRawEncoder, ColorType as JpegColorType, Density};
 
 #[allow(dead_code)]
 pub fn format_file_size(size: u64) -> String {
@@ -132,8 +132,6 @@ fn handle_name_conflict(path: &Path) -> Result<PathBuf> {
     }
 }
 
-
-
 pub fn convert_color_mode(img: &DynamicImage, target_mode: &str) -> Result<DynamicImage> {
     match target_mode.to_uppercase().as_str() {
         "RGB" => {
@@ -158,9 +156,9 @@ pub fn convert_color_mode(img: &DynamicImage, target_mode: &str) -> Result<Dynam
             Ok(gray_img)
         }
         "CMYK" => {
-            // CMYK requires special handling during save, 
+            // CMYK requires special handling during save,
             // so we return the RGB image here and handle conversion in batch_convert_color_mode
-             let rgb_img = match img {
+            let rgb_img = match img {
                 DynamicImage::ImageRgb8(_) => img.clone(),
                 _ => img.to_rgb8().into(),
             };
@@ -182,9 +180,21 @@ fn save_as_cmyk(img: &DynamicImage, path: &Path) -> Result<()> {
         let b = pixel[2] as f32 / 255.0;
 
         let k = 1.0 - r.max(g).max(b);
-        let c = if k < 1.0 { (1.0 - r - k) / (1.0 - k) } else { 0.0 };
-        let m = if k < 1.0 { (1.0 - g - k) / (1.0 - k) } else { 0.0 };
-        let y = if k < 1.0 { (1.0 - b - k) / (1.0 - k) } else { 0.0 };
+        let c = if k < 1.0 {
+            (1.0 - r - k) / (1.0 - k)
+        } else {
+            0.0
+        };
+        let m = if k < 1.0 {
+            (1.0 - g - k) / (1.0 - k)
+        } else {
+            0.0
+        };
+        let y = if k < 1.0 {
+            (1.0 - b - k) / (1.0 - k)
+        } else {
+            0.0
+        };
 
         // Naive conversion often usually results in inverted CMYK for JPEGs (Adobe style),
         // but standard math is:
@@ -194,7 +204,7 @@ fn save_as_cmyk(img: &DynamicImage, path: &Path) -> Result<()> {
         // K = 255 * k
         // However, JPEGs often store CMYK as inverted (255-val).
         // Let's stick to standard byte values first.
-        
+
         cmyk_data.push((c * 255.0) as u8);
         cmyk_data.push((m * 255.0) as u8);
         cmyk_data.push((y * 255.0) as u8);
@@ -203,11 +213,12 @@ fn save_as_cmyk(img: &DynamicImage, path: &Path) -> Result<()> {
 
     let mut encoder = JpegRawEncoder::new_file(path, 95)?; // Quality 95
     encoder.set_density(Density::Inch { x: 300, y: 300 });
-    
+
     // Use jpeg-encoder's ColorType::Cmyk which allows 4-channel encoding
-    encoder.encode(&cmyk_data, width as u16, height as u16, JpegColorType::Cmyk)
-        .map_err(|e| anyhow::anyhow!("编码错误: {}", e))?; 
-        
+    encoder
+        .encode(&cmyk_data, width as u16, height as u16, JpegColorType::Cmyk)
+        .map_err(|e| anyhow::anyhow!("编码错误: {}", e))?;
+
     Ok(())
 }
 
@@ -266,7 +277,7 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
         match image::open(&original_path) {
             Ok(img) => {
                 if target_mode.to_uppercase() == "CMYK" {
-                     match save_as_cmyk(&img, &output_path) {
+                    match save_as_cmyk(&img, &output_path) {
                         Ok(_) => {
                             results.push((
                                 image_info.file_name.clone(),
@@ -279,7 +290,7 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
                                 format!("CMYK转换失败: {}", e),
                             ));
                         }
-                     }
+                    }
                 } else {
                     match convert_color_mode(&img, target_mode) {
                         Ok(converted_img) => {
@@ -296,8 +307,12 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
                                     .unwrap_or(ImageFormat::Png)
                             };
 
-                            match save_image_with_format(&converted_img, &output_path, format, Some(95))
-                            {
+                            match save_image_with_format(
+                                &converted_img,
+                                &output_path,
+                                format,
+                                Some(95),
+                            ) {
                                 Ok(_) => {
                                     results.push((
                                         image_info.file_name.clone(),
@@ -313,7 +328,8 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
                             }
                         }
                         Err(e) => {
-                            results.push((image_info.file_name.clone(), format!("转换失败: {}", e)));
+                            results
+                                .push((image_info.file_name.clone(), format!("转换失败: {}", e)));
                         }
                     }
                 }
