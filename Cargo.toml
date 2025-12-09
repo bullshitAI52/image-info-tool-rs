@@ -23,7 +23,7 @@ egui_extras = "0.27"
 
 # 图片处理
 image = "0.25"
-imageproc = "0.24"
+imageproc = "0.25"
 color-thief = "0.2"
 jpeg-encoder = "0.6"
 
