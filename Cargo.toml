@@ -1,6 +1,6 @@
 [package]
 name = "image-info-tool"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 authors = ["zwm"]
 description = "图片信息批量处理工具（Rust重构版）"
