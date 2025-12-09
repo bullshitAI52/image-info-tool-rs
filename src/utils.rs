@@ -1,9 +1,9 @@
 use crate::image_info::ImageInfo;
 use anyhow::{Context, Result};
-use std::path::{Path, PathBuf};
-use std::fs;
-use image::{DynamicImage, ImageFormat};
 use chrono::Local;
+use image::{DynamicImage, ImageFormat};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub fn format_file_size(size: u64) -> String {
     if size >= 1024 * 1024 {
@@ -13,12 +13,16 @@ pub fn format_file_size(size: u64) -> String {
     }
 }
 
-pub fn rename_file_by_size<P: AsRef<Path>>(file_path: P, width_cm: f64, height_cm: f64) -> Result<PathBuf> {
+pub fn rename_file_by_size<P: AsRef<Path>>(
+    file_path: P,
+    width_cm: f64,
+    height_cm: f64,
+) -> Result<PathBuf> {
     let file_path = file_path.as_ref();
     let parent = file_path.parent().context("无法获取父目录")?;
     let file_stem = file_path.file_stem().context("无法获取文件主干名")?;
     let extension = file_path.extension().context("无法获取文件扩展名")?;
-    
+
     // 构建新文件名：原文件名_宽x高cm.扩展名
     let new_name = format!(
         "{}_{}x{}cm.{}",
@@ -27,15 +31,15 @@ pub fn rename_file_by_size<P: AsRef<Path>>(file_path: P, width_cm: f64, height_c
         height_cm.round() as u32,
         extension.to_string_lossy()
     );
-    
+
     let new_path = parent.join(new_name);
-    
+
     // 处理文件名冲突
     let final_path = handle_name_conflict(&new_path)?;
-    
+
     // 重命名文件
     fs::rename(file_path, &final_path).context("重命名文件失败")?;
-    
+
     Ok(final_path)
 }
 
@@ -46,7 +50,7 @@ pub fn batch_rename_by_size<P: AsRef<Path>>(
     let folder_path = folder_path.as_ref();
     let mut results = Vec::new();
     let mut existing_files = std::collections::HashSet::new();
-    
+
     // 收集现有文件
     for entry in fs::read_dir(folder_path).context("无法读取文件夹")? {
         let entry = entry.context("无法读取文件夹条目")?;
@@ -56,7 +60,7 @@ pub fn batch_rename_by_size<P: AsRef<Path>>(
             }
         }
     }
-    
+
     for image_info in image_infos {
         if image_info.error.is_some() {
             results.push((
@@ -65,25 +69,22 @@ pub fn batch_rename_by_size<P: AsRef<Path>>(
             ));
             continue;
         }
-        
+
         let original_path = folder_path.join(&image_info.file_name);
         if !original_path.exists() {
-            results.push((
-                image_info.file_name.clone(),
-                "文件不存在".to_string(),
-            ));
+            results.push((image_info.file_name.clone(), "文件不存在".to_string()));
             continue;
         }
-        
+
         let (width_cm, height_cm) = image_info.physical_size;
-        
+
         match rename_file_by_size(&original_path, width_cm, height_cm) {
             Ok(new_path) => {
                 if let Some(new_file_name) = new_path.file_name().and_then(|n| n.to_str()) {
                     // 更新文件集合
                     existing_files.remove(&image_info.file_name);
                     existing_files.insert(new_file_name.to_string());
-                    
+
                     results.push((
                         image_info.file_name.clone(),
                         format!("成功 -> {}", new_file_name),
@@ -91,14 +92,11 @@ pub fn batch_rename_by_size<P: AsRef<Path>>(
                 }
             }
             Err(e) => {
-                results.push((
-                    image_info.file_name.clone(),
-                    format!("失败: {}", e),
-                ));
+                results.push((image_info.file_name.clone(), format!("失败: {}", e)));
             }
         }
     }
-    
+
     Ok(results)
 }
 
@@ -106,11 +104,11 @@ fn handle_name_conflict(path: &Path) -> Result<PathBuf> {
     if !path.exists() {
         return Ok(path.to_path_buf());
     }
-    
+
     let parent = path.parent().context("无法获取父目录")?;
     let file_stem = path.file_stem().context("无法获取文件主干名")?;
     let extension = path.extension().context("无法获取文件扩展名")?;
-    
+
     let mut counter = 1;
     loop {
         let new_name = format!(
@@ -120,11 +118,11 @@ fn handle_name_conflict(path: &Path) -> Result<PathBuf> {
             extension.to_string_lossy()
         );
         let new_path = parent.join(new_name);
-        
+
         if !new_path.exists() {
             return Ok(new_path);
         }
-        
+
         counter += 1;
         if counter > 1000 {
             anyhow::bail!("尝试了太多次重命名，可能存在无限循环");
@@ -139,10 +137,7 @@ fn rgb_to_cmyk_improved(rgb_img: &DynamicImage) -> DynamicImage {
     rgb_img.clone()
 }
 
-pub fn convert_color_mode(
-    img: &DynamicImage,
-    target_mode: &str,
-) -> Result<DynamicImage> {
+pub fn convert_color_mode(img: &DynamicImage, target_mode: &str) -> Result<DynamicImage> {
     match target_mode.to_uppercase().as_str() {
         "RGB" => {
             let rgb_img = match img {
@@ -171,7 +166,7 @@ pub fn convert_color_mode(
                 DynamicImage::ImageRgb8(_) => img.clone(),
                 _ => img.to_rgb8().into(),
             };
-            
+
             // 使用改进的CMYK转换算法
             Ok(rgb_to_cmyk_improved(&rgb_img))
         }
@@ -188,10 +183,10 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
     let folder_path = folder_path.as_ref();
     let output_folder = output_folder.as_ref();
     let mut results = Vec::new();
-    
+
     // 创建输出文件夹
     fs::create_dir_all(output_folder).context("创建输出文件夹失败")?;
-    
+
     for (i, image_info) in image_infos.iter().enumerate() {
         if image_info.error.is_some() {
             results.push((
@@ -200,16 +195,13 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
             ));
             continue;
         }
-        
+
         let original_path = folder_path.join(&image_info.file_name);
         if !original_path.exists() {
-            results.push((
-                image_info.file_name.clone(),
-                "文件不存在".to_string(),
-            ));
+            results.push((image_info.file_name.clone(), "文件不存在".to_string()));
             continue;
         }
-        
+
         // 检查是否已经是目标模式
         if image_info.color_mode.to_uppercase() == target_mode.to_uppercase() {
             results.push((
@@ -218,28 +210,30 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
             ));
             continue;
         }
-        
+
         // 构建输出路径
         let file_stem = original_path.file_stem().context("无法获取文件主干名")?;
         let extension = original_path.extension().context("无法获取文件扩展名")?;
-        
+
         // 根据目标模式选择输出格式
         let output_extension = if target_mode.to_uppercase() == "CMYK" {
             "jpg".to_string()
         } else {
             extension.to_string_lossy().to_string()
         };
-        
+
         let output_file_name = format!("{}.{}", file_stem.to_string_lossy(), output_extension);
         let output_path = output_folder.join(&output_file_name);
-        
+
         // 转换图片
         match image::open(&original_path) {
             Ok(img) => {
                 match convert_color_mode(&img, target_mode) {
                     Ok(converted_img) => {
                         // 保存转换后的图片
-                        let format = if output_extension.to_lowercase() == "jpg" || output_extension.to_lowercase() == "jpeg" {
+                        let format = if output_extension.to_lowercase() == "jpg"
+                            || output_extension.to_lowercase() == "jpeg"
+                        {
                             ImageFormat::Jpeg
                         } else if output_extension.to_lowercase() == "png" {
                             ImageFormat::Png
@@ -248,8 +242,9 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
                             ImageFormat::from_extension(&output_extension.to_string())
                                 .unwrap_or(ImageFormat::Png)
                         };
-                        
-                        match save_image_with_format(&converted_img, &output_path, format, Some(95)) {
+
+                        match save_image_with_format(&converted_img, &output_path, format, Some(95))
+                        {
                             Ok(_) => {
                                 results.push((
                                     image_info.file_name.clone(),
@@ -265,22 +260,16 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
                         }
                     }
                     Err(e) => {
-                        results.push((
-                            image_info.file_name.clone(),
-                            format!("转换失败: {}", e),
-                        ));
+                        results.push((image_info.file_name.clone(), format!("转换失败: {}", e)));
                     }
                 }
             }
             Err(e) => {
-                results.push((
-                    image_info.file_name.clone(),
-                    format!("打开失败: {}", e),
-                ));
+                results.push((image_info.file_name.clone(), format!("打开失败: {}", e)));
             }
         }
     }
-    
+
     Ok(results)
 }
 
@@ -291,7 +280,7 @@ pub fn save_image_with_format<P: AsRef<Path>>(
     quality: Option<u8>,
 ) -> Result<()> {
     let path = path.as_ref();
-    
+
     match format {
         ImageFormat::Jpeg => {
             let _quality = quality.unwrap_or(95);
@@ -304,7 +293,7 @@ pub fn save_image_with_format<P: AsRef<Path>>(
             img.save_with_format(path, format)?;
         }
     }
-    
+
     Ok(())
 }
 
@@ -315,7 +304,7 @@ pub fn get_timestamp() -> String {
 pub fn create_unique_directory<P: AsRef<Path>>(base_path: P, prefix: &str) -> Result<PathBuf> {
     let base_path = base_path.as_ref();
     let timestamp = get_timestamp();
-    
+
     let mut counter = 0;
     loop {
         let dir_name = if counter == 0 {
@@ -323,14 +312,14 @@ pub fn create_unique_directory<P: AsRef<Path>>(base_path: P, prefix: &str) -> Re
         } else {
             format!("{}_{}_{}", prefix, timestamp, counter)
         };
-        
+
         let dir_path = base_path.join(dir_name);
-        
+
         if !dir_path.exists() {
             fs::create_dir_all(&dir_path).context("创建目录失败")?;
             return Ok(dir_path);
         }
-        
+
         counter += 1;
         if counter > 100 {
             anyhow::bail!("无法创建唯一目录，尝试次数过多");
@@ -340,16 +329,16 @@ pub fn create_unique_directory<P: AsRef<Path>>(base_path: P, prefix: &str) -> Re
 
 pub fn is_image_file<P: AsRef<Path>>(path: P) -> bool {
     let path = path.as_ref();
-    
+
     if !path.is_file() {
         return false;
     }
-    
+
     let supported_extensions = [
-        "jpg", "jpeg", "png", "bmp", "gif", "tiff", "tif",
-        "JPG", "JPEG", "PNG", "BMP", "GIF", "TIFF", "TIF",
+        "jpg", "jpeg", "png", "bmp", "gif", "tiff", "tif", "JPG", "JPEG", "PNG", "BMP", "GIF",
+        "TIFF", "TIF",
     ];
-    
+
     path.extension()
         .and_then(|ext| ext.to_str())
         .map(|ext| supported_extensions.contains(&ext))
@@ -365,10 +354,10 @@ pub fn compress_image<P: AsRef<Path>>(
 ) -> Result<()> {
     let input_path = input_path.as_ref();
     let output_path = output_path.as_ref();
-    
+
     // 打开图片
     let img = image::open(input_path).context("打开图片失败")?;
-    
+
     // 调整尺寸（如果需要）
     let img = if let (Some(max_w), Some(max_h)) = (max_width, max_height) {
         img.resize(max_w, max_h, image::imageops::FilterType::Lanczos3)
@@ -379,13 +368,14 @@ pub fn compress_image<P: AsRef<Path>>(
     } else {
         img
     };
-    
+
     // 根据输出文件扩展名选择格式
-    let extension = output_path.extension()
+    let extension = output_path
+        .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("jpg")
         .to_lowercase();
-    
+
     match extension.as_str() {
         "jpg" | "jpeg" => {
             img.save_with_format(output_path, image::ImageFormat::Jpeg)?;
@@ -403,7 +393,7 @@ pub fn compress_image<P: AsRef<Path>>(
             img.save(output_path).context("保存图片失败")?;
         }
     }
-    
+
     Ok(())
 }
 
@@ -418,10 +408,10 @@ pub fn batch_compress_images<P: AsRef<Path>>(
     let folder_path = folder_path.as_ref();
     let output_folder = output_folder.as_ref();
     let mut results = Vec::new();
-    
+
     // 创建输出文件夹
     fs::create_dir_all(output_folder).context("创建输出文件夹失败")?;
-    
+
     for image_info in image_infos {
         if image_info.error.is_some() {
             results.push((
@@ -430,50 +420,49 @@ pub fn batch_compress_images<P: AsRef<Path>>(
             ));
             continue;
         }
-        
+
         let original_path = folder_path.join(&image_info.file_name);
         if !original_path.exists() {
-            results.push((
-                image_info.file_name.clone(),
-                "文件不存在".to_string(),
-            ));
+            results.push((image_info.file_name.clone(), "文件不存在".to_string()));
             continue;
         }
-        
+
         // 构建输出路径
         let file_stem = original_path.file_stem().context("无法获取文件主干名")?;
         let extension = original_path.extension().context("无法获取文件扩展名")?;
-        
-        let output_file_name = format!("{}.{}", file_stem.to_string_lossy(), extension.to_string_lossy());
+
+        let output_file_name = format!(
+            "{}.{}",
+            file_stem.to_string_lossy(),
+            extension.to_string_lossy()
+        );
         let output_path = output_folder.join(&output_file_name);
-        
+
         // 压缩图片
         match compress_image(&original_path, &output_path, quality, max_width, max_height) {
             Ok(_) => {
                 let original_size = image_info.file_size;
-                let new_size = fs::metadata(&output_path)
-                    .map(|m| m.len())
-                    .unwrap_or(0);
-                
+                let new_size = fs::metadata(&output_path).map(|m| m.len()).unwrap_or(0);
+
                 let compression_ratio = if original_size > 0 {
-                    format!(" ({:.1}%)", (new_size as f64 / original_size as f64) * 100.0)
+                    format!(
+                        " ({:.1}%)",
+                        (new_size as f64 / original_size as f64) * 100.0
+                    )
                 } else {
                     String::new()
                 };
-                
+
                 results.push((
                     image_info.file_name.clone(),
                     format!("成功{} -> {}", compression_ratio, output_file_name),
                 ));
             }
             Err(e) => {
-                results.push((
-                    image_info.file_name.clone(),
-                    format!("失败: {}", e),
-                ));
+                results.push((image_info.file_name.clone(), format!("失败: {}", e)));
             }
         }
     }
-    
+
     Ok(results)
 }

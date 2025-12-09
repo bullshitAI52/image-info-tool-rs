@@ -1,10 +1,10 @@
 use eframe::egui;
 
 mod app_simple;
+mod excel_export;
+mod fonts;
 mod image_info;
 mod utils;
-mod fonts;
-mod excel_export;
 
 use app_simple::ImageToolApp;
 use fonts::configure_fonts;
@@ -27,7 +27,7 @@ fn main() -> Result<(), eframe::Error> {
         Box::new(|cc| {
             // 配置字体
             configure_fonts(&cc.egui_ctx);
-            
+
             // 设置样式
             let mut style = (*cc.egui_ctx.style()).clone();
             style.text_styles.insert(
