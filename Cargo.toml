@@ -18,7 +18,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # GUI
 eframe = "0.27"
-egui = "0.27"
+egui = "0.33"
 egui_extras = "0.27"
 
 # 图片处理
