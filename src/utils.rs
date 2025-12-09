@@ -132,12 +132,7 @@ fn handle_name_conflict(path: &Path) -> Result<PathBuf> {
     }
 }
 
-fn rgb_to_cmyk_improved(rgb_img: &DynamicImage) -> DynamicImage {
-    // 简化处理：将CMYK转换为RGBA（4通道）
-    // 实际应该创建4通道图像，但image库可能不支持直接创建CMYK
-    // 这里返回RGB图像作为占位符
-    rgb_img.clone()
-}
+
 
 pub fn convert_color_mode(img: &DynamicImage, target_mode: &str) -> Result<DynamicImage> {
     match target_mode.to_uppercase().as_str() {
