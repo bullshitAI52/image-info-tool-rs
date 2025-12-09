@@ -5,6 +5,7 @@ use image::{DynamicImage, ImageFormat};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[allow(dead_code)]
 pub fn format_file_size(size: u64) -> String {
     if size >= 1024 * 1024 {
         format!("{:.2} MB", size as f64 / (1024.0 * 1024.0))
@@ -187,7 +188,7 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
     // 创建输出文件夹
     fs::create_dir_all(output_folder).context("创建输出文件夹失败")?;
 
-    for (i, image_info) in image_infos.iter().enumerate() {
+    for image_info in image_infos.iter() {
         if image_info.error.is_some() {
             results.push((
                 image_info.file_name.clone(),
@@ -239,7 +240,7 @@ pub fn batch_convert_color_mode<P: AsRef<Path>>(
                             ImageFormat::Png
                         } else {
                             // 尝试根据扩展名推断格式
-                            ImageFormat::from_extension(&output_extension.to_string())
+                            ImageFormat::from_extension(&output_extension)
                                 .unwrap_or(ImageFormat::Png)
                         };
 
@@ -297,10 +298,12 @@ pub fn save_image_with_format<P: AsRef<Path>>(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn get_timestamp() -> String {
     Local::now().format("%Y%m%d_%H%M%S").to_string()
 }
 
+#[allow(dead_code)]
 pub fn create_unique_directory<P: AsRef<Path>>(base_path: P, prefix: &str) -> Result<PathBuf> {
     let base_path = base_path.as_ref();
     let timestamp = get_timestamp();
@@ -327,6 +330,7 @@ pub fn create_unique_directory<P: AsRef<Path>>(base_path: P, prefix: &str) -> Re
     }
 }
 
+#[allow(dead_code)]
 pub fn is_image_file<P: AsRef<Path>>(path: P) -> bool {
     let path = path.as_ref();
 
@@ -345,10 +349,11 @@ pub fn is_image_file<P: AsRef<Path>>(path: P) -> bool {
         .unwrap_or(false)
 }
 
+#[allow(dead_code)]
 pub fn compress_image<P: AsRef<Path>>(
     input_path: P,
     output_path: P,
-    quality: u8,
+    _quality: u8,
     max_width: Option<u32>,
     max_height: Option<u32>,
 ) -> Result<()> {
@@ -397,6 +402,7 @@ pub fn compress_image<P: AsRef<Path>>(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn batch_compress_images<P: AsRef<Path>>(
     folder_path: P,
     output_folder: P,

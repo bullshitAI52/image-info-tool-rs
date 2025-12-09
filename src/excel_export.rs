@@ -29,7 +29,7 @@ pub fn export_to_excel<P: AsRef<Path>>(batch_info: &BatchImageInfo, output_path:
     let mut wtr = Writer::from_writer(file);
 
     // 写入表头
-    wtr.write_record(&[
+    wtr.write_record([
         "文件名",
         "像素宽度",
         "像素高度",
@@ -70,9 +70,9 @@ pub fn export_to_excel<P: AsRef<Path>>(batch_info: &BatchImageInfo, output_path:
     }
 
     // 写入汇总信息
-    wtr.write_record(&["汇总信息", "", "", "", "", "", "", "", "", "", "", ""])
+    wtr.write_record(["汇总信息", "", "", "", "", "", "", "", "", "", "", ""])
         .context("写入汇总标题失败")?;
-    wtr.write_record(&[
+    wtr.write_record([
         "总图片数",
         &batch_info.total_count.to_string(),
         "",
@@ -87,7 +87,7 @@ pub fn export_to_excel<P: AsRef<Path>>(batch_info: &BatchImageInfo, output_path:
         "",
     ])
     .context("写入总图片数失败")?;
-    wtr.write_record(&[
+    wtr.write_record([
         "成功读取",
         &batch_info.success_count.to_string(),
         "",
@@ -102,7 +102,7 @@ pub fn export_to_excel<P: AsRef<Path>>(batch_info: &BatchImageInfo, output_path:
         "",
     ])
     .context("写入成功数失败")?;
-    wtr.write_record(&[
+    wtr.write_record([
         "读取失败",
         &batch_info.error_count.to_string(),
         "",
@@ -123,6 +123,7 @@ pub fn export_to_excel<P: AsRef<Path>>(batch_info: &BatchImageInfo, output_path:
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn generate_report_filename<P: AsRef<Path>>(folder_path: P) -> String {
     let folder_path = folder_path.as_ref();
     let folder_name = folder_path

@@ -3,6 +3,7 @@ use crate::image_info::{scan_folder, BatchImageInfo};
 use crate::utils::{batch_convert_color_mode, batch_rename_by_size};
 use eframe::egui;
 use egui_extras::{Column, TableBuilder};
+#[allow(unused_imports)]
 use log::{error, info};
 use std::collections::VecDeque;
 use std::path::PathBuf;

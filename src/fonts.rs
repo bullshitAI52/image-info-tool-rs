@@ -1,4 +1,5 @@
 use eframe::egui;
+#[allow(unused_imports)]
 use std::collections::BTreeMap;
 
 pub fn configure_fonts(ctx: &egui::Context) {
